@@ -59,29 +59,53 @@ def mpu_data_acquire(address):
     
     return gyro_xout_scaled, gyro_yout_scaled, gyro_zout_scaled, accel_xout_scaled, accel_yout_scaled, accel_zout_scaled
 
+def integral_sqr(x, dt):
+    int_sqr = x*dt
+    return int_sqr
+
+def integral_trap(x, xold, dt): #метод трапеции, реализовать дальше, для этого нужно создать
+    #переменную для хранения предыдущего значения гироскопа
+    int_trap = (x + xold)*dt/2
+    return int_trap
+
 def comp_filter(cxold, cyold, gxs, gys, xr, yr, t):
     alpha = 0.1
-    compfx = (1-alpha) * (cxold + gxs * t) + alpha * (xr)
-    compfy = (1-alpha) * (cyold + gys * t) + alpha * (yr)
+    compfx = (1-alpha) * (cxold + integral_sqr(gxs,t)) + alpha * (xr)
+    compfy = (1-alpha) * (cyold + integral_sqr(gys,t)) + alpha * (yr)
     return compfx, compfy
 
+def comp_filter_trap(cxold, cyold, gxs, gxold, gys, gyold, xr, yr, t):
+    alpha = 0.1
+    compfx = (1-alpha) * (cxold + integral_trap(gxs,gxold,t)) + alpha * (xr)
+    compfy = (1-alpha) * (cyold + integral_trap(gys,gyold,t)) + alpha * (yr)
+    return compfx, compfy
+    
 bus = smbus.SMBus(1) #bus = smbus.SMBus(1) for Revision 2 boards, (0) for Rev. 1
 address1 = activate_addr(0x68)    # This activates the 1 MPU address value read via the i2cdetect command and assigns the variable
 address2 = activate_addr(0x69)    # This activates the 2 MPU the address value read via the i2cdetect command  and assigns the variable
 
 compfxold1 = 0.0
 compfyold1 = 0.0
+gyroxold1 = 0.0
+gyroyold1 = 0.0
+gyrozold1 = 0.0
 compfxold2 = 0.0
 compfyold2 = 0.0
+gyroxold2 = 0.0
+gyroyold2 = 0.0
+gyrozold2 = 0.0
 compfxold3 = 0.0
 compfyold3 = 0.0
+gyroxold3 = 0.0
+gyroyold3 = 0.0
+gyrozold3 = 0.0
 
 f1 = open('mpu_1.csv','w')
 f2 = open('mpu_2.csv','w')
 f3 = open('mpu_diff.csv','w')
-col1 = ['X rot 1','Y rot 1','X rot(CF) 1','Y rot(CF) 1']   #названия столбцов данных
-col2 = ['X rot 2','Y rot 2','X rot(CF) 2','Y rot(CF) 2']
-col3 = ['dX rot','dY rot','dX rot(CF)','dY rot(CF)']
+col1 = ['X rot 1','Y rot 1','X rot(CF) 1','Y rot(CF) 1','Z rot 1']   #названия столбцов данных,'Z rot 1'
+col2 = ['X rot 2','Y rot 2','X rot(CF) 2','Y rot(CF) 2','Z rot 2']   #,'Z rot 2'
+col3 = ['dX rot','dY rot','dX rot(CF)','dY rot(CF)','dZ rot']        #,'dZ rot'
 csv.writer(f1).writerow(col1)
 csv.writer(f2).writerow(col2)
 csv.writer(f3).writerow(col3)
@@ -97,16 +121,19 @@ listxrot1 = []
 listyrot1 = []
 listxrotcf1 = []
 listyrotcf1 = []
+listgyroz1 = []
 
 listxrot2 = []
 listyrot2 = []
 listxrotcf2 = []
 listyrotcf2 = []
+listgyroz2 = []
 
 listxrot3 = []
 listyrot3 = []
 listxrotcf3 = []
 listyrotcf3 = []
+listgyroz3 = []
 
 list_at1 = []
 list_at2 = []
@@ -133,15 +160,23 @@ while tmp > 0:
     dt1 = now1 - start
     at1 += dt1
     
-    compf1 = comp_filter(compfxold1, compfyold1, result1[0], result1[1], xrot1, yrot1, dt1)
+    #compf1 = comp_filter(compfxold1, compfyold1, result1[0], result1[1], xrot1, yrot1, dt1)
+    #gyro_z1 = integral_sqr(result1[2],dt1)
+    compf1 = comp_filter_trap(compfxold1, compfyold1, result1[0], gyroxold1, result1[1], gyroyold1, xrot1, yrot1, dt1)
+    gyro_z1 = integral_trap(result1[2], gyrozold1, dt1)
+    
     compfxold1 = compf1[0]
     compfyold1 = compf1[1]
+    gyroxold1 = result1[0]
+    gyroyold1 = result1[1]
+    gyrozold1 = result1[2]
     
     data1 = []
     data1.append(xrot1)
     data1.append(yrot1)
     data1.append(compf1[0])
     data1.append(compf1[1])
+    data1.append(gyro_z1)
     
     list_data1.append(data1)
     
@@ -149,6 +184,7 @@ while tmp > 0:
     listyrot1.append(yrot1)
     listxrotcf1.append(compf1[0])
     listyrotcf1.append(compf1[1])
+    listgyroz1.append(gyro_z1)
     list_at1.append(at1)
     
     if tmp == 1000:
@@ -166,15 +202,23 @@ while tmp > 0:
     at2 += dt2
     
     
-    compf2 = comp_filter(compfxold2, compfyold2, result2[0], result2[1], xrot2, yrot2, dt2)
+    #compf2 = comp_filter(compfxold2, compfyold2, result2[0], result2[1], xrot2, yrot2, dt2)
+    #gyro_z2 = integral_sqr(result2[2],dt2)
+    compf2 = comp_filter_trap(compfxold2, compfyold2, result2[0], gyroxold2, result2[1], gyroyold2, xrot2, yrot2, dt2)
+    gyro_z2 = integral_trap(result2[2], gyrozold2, dt2)
+    
     compfxold2 = compf2[0]
     compfyold2 = compf2[1]
+    gyroxold2 = result2[0]
+    gyroyold2 = result2[1]
+    gyrozold2 = result2[2]
     
     data2 = []
     data2.append(xrot2)
     data2.append(yrot2)
     data2.append(compf2[0])
     data2.append(compf2[1])
+    data2.append(gyro_z2)
     
     list_data2.append(data2)
     
@@ -182,6 +226,7 @@ while tmp > 0:
     listyrot2.append(yrot2)
     listxrotcf2.append(compf2[0])
     listyrotcf2.append(compf2[1])
+    listgyroz2.append(gyro_z2)
     list_at2.append(at2)
     
     if tmp == 1000:
@@ -199,22 +244,25 @@ while tmp > 0:
     dt3 = now3 - start
     at3 += dt3
     
-    compf3 = comp_filter(compfxold3, compfyold3, gyro_result_x, gyro_result_y, xrot_diff, yrot_diff, dt3)
-    compfxold3 = compf3[0]
-    compfyold3 = compf3[1]
+    compf_diff_x = compf1[0] - compf2[0]
+    compf_diff_y = compf1[1] - compf2[1]
+    gyro_diff_z = gyro_z1 - gyro_z2
+
     
     data3 = []
     data3.append(xrot_diff)
     data3.append(yrot_diff)
-    data3.append(compf3[0])
-    data3.append(compf3[1])
+    data3.append(compf_diff_x)
+    data3.append(compf_diff_y)
+    data3.append(gyro_diff_z)
     
     list_data3.append(data3)
     
     listxrot3.append(xrot_diff)
     listyrot3.append(yrot_diff)
-    listxrotcf3.append(compf3[0])
-    listyrotcf3.append(compf3[1])
+    listxrotcf3.append(compf_diff_x)
+    listyrotcf3.append(compf_diff_y)
+    listgyroz3.append(gyro_diff_z)
     list_at3.append(at3)
     
     tmp -= 1
@@ -234,18 +282,21 @@ ax1.plot(list_at1, listxrot1, color="red", label="X rot")
 ax1.plot(list_at1, listyrot1, color="blue", label="Y rot")
 ax1.plot(list_at1, listxrotcf1, color="yellow", label="X rot (CF)")
 ax1.plot(list_at1, listyrotcf1, color="black", label="Y rot (CF)")
+ax1.plot(list_at1, listgyroz1, color="grey", label="Z rot")
 ax1.legend(loc="lower left", title="Legend", frameon=True)
 
 ax2.plot(list_at2, listxrot2, color="red", label="X rot")
 ax2.plot(list_at2, listyrot2, color="blue", label="Y rot")
 ax2.plot(list_at2, listxrotcf2, color="yellow", label="X rot (CF)")
 ax2.plot(list_at2, listyrotcf2, color="black", label="Y rot (CF)")
+ax2.plot(list_at2, listgyroz2, color="grey", label="Z rot")
 ax2.legend(loc="lower left", title="Legend", frameon=True)
 
 ax3.plot(list_at3, listxrot3, color="red", label="X rot")
 ax3.plot(list_at3, listyrot3, color="blue", label="Y rot")
 ax3.plot(list_at3, listxrotcf3, color="yellow", label="X rot (CF)")
 ax3.plot(list_at3, listyrotcf3, color="black", label="Y rot (CF)")
+ax3.plot(list_at3, listgyroz3, color="grey", label="Z rot")
 ax3.legend(loc="lower left", title="Legend", frameon=True)
 
 #plt.savefig('testplot.png', bbox_inches = 'tight', pad_inches = 0.1)
