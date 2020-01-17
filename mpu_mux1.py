@@ -1,4 +1,4 @@
-#!/usr/bin/python
+ #!/usr/bin/python
 
 import smbus
 import math
@@ -11,17 +11,18 @@ import matplotlib.animation as animation
 def dist(a,b):
     return math.sqrt((a*a)+(b*b))
 def get_y_rotation(x,y,z):
-    radians = math.atan2(x, dist(y,z))
+    radians = math.atan2(x, dist(y,z)) 
     return -math.degrees(radians)
 def get_x_rotation(x,y,z):
     radians = math.atan2(y, dist(x,z))
     return math.degrees(radians)
 
 #MPU functions
-def mpu_activate():
+def mpu_activate(mux_addr):
     for mpu in range(MPUs):
-        bus.write_byte_data(mux_upp_address, mux_channels[mpu], 1) #correct - channel select
+        bus.write_byte_data(mux_addr, 0, mux_channels[mpu]) #correct - channel select
         bus.write_byte_data(mpu_address, mpu_power_mgmt, 0) # Now wake the 6050 up as it starts in sleep mode
+        print('MPU ' + mpu + ' activated')
 def read_register_mpu(address, register): #считываются значения из регистров
     high = bus.read_byte_data(address, register)
     low = bus.read_byte_data(address, register+1)
@@ -31,8 +32,7 @@ def read_register_mpu(address, register): #считываются значени
     else:
         return val
 def mpu_data_acquire(mpu_addr, mpu):
-    bus.write_byte_data(mux_upp_address, mux_channels[mpu], 1) #correct - channel select
-    
+    bus.write_byte_data(mux_upp_address, 0, mux_channels[mpu]) #correct - channel select
     gyro_xout = read_register_mpu(mpu_addr, 0x43, mpu)
     gyro_yout = read_register_mpu(mpu_addr, 0x45, mpu)
     gyro_zout = read_register_mpu(mpu_addr, 0x47, mpu)
@@ -45,7 +45,6 @@ def mpu_data_acquire(mpu_addr, mpu):
     accel_xout_scaled = accel_xout/16384.0
     accel_yout_scaled = accel_yout/16384.0
     accel_zout_scaled = accel_zout/16384.0
-    
     return gyro_xout_scaled, gyro_yout_scaled, gyro_zout_scaled, accel_xout_scaled, accel_yout_scaled, accel_zout_scaled
 
 #Final rotations
@@ -65,14 +64,12 @@ mux_upp_address = 0x70
 #mux_low_address = 0x71
 mux_channel_switch = 0x08
 
-#mux_upp_channels = [1000, 1001, 1010, 1011, 1100, 1101, 1110, 1111]
-mux_channels = [0b10001000, 0b10001001, 0b10001010, 0b10001011, 0b10001100, 0b10001101, 0b10001110, 0b10001111] #correct - contains a switching byte
-#mux_channels = [mux_channel_switch | 0, mux_channel_switch | 1, mux_channel_switch | 2, mux_channel_switch | 3,
-#                    mux_channel_switch | 4, mux_channel_switch | 5, mux_channel_switch | 6, mux_channel_switch | 7] #possible to use 0x08 | channel number (MPU)
 MPUs = 4 #Setting the number of used MPUs
+mux_channels = [mux_channel_switch | 0, mux_channel_switch | 1, mux_channel_switch | 2, mux_channel_switch | 3,
+                mux_channel_switch | 4, mux_channel_switch | 5, mux_channel_switch | 6, mux_channel_switch | 7] #possible to use 0x08 | channel number (MPU)
 
 bus = smbus.SMBus(1) #bus = smbus.SMBus(1) for Revision 2 boards, (0) for Rev. 1
-mpu_activate()    #activates the MPUs through multiplexer
+mpu_activate(mux_upp_address)    #activates the MPUs through multiplexer
 
 now = 0.0 #if starting position is not defined
 at = 0.0
@@ -97,7 +94,7 @@ compfx_0 = []
 compfy_0 = []
 gyrointz_0 = []
 
-listcompfx = [] #Creatin a list of lists. The amount of inserted lists is equal to the number of used MPUs.
+listcompfx = [] #Creating a list of lists. The amount of inserted lists is equal to the number of used MPUs.
 listcompfy = []
 listgyroz = []
 
