@@ -1,0 +1,10 @@
+...
+import time
+import os
+...
+  print('X rotation: ' + str(compfx_ac[MPU] - compfx_0[MPU]))
+  print('X rotation: ' + str(compfy_ac[MPU] - compfy_0[MPU])) 
+  print('X rotation: ' + str(gyrointz_ac[MPU] - gyrointz_0[MPU]))
+  time.sleep(0.5)
+  os.system('clear')
+...
