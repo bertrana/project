@@ -90,3 +90,11 @@ while tmp:
         print('pitch: ' + str(roll_pitch_yaw.y))
         print('yaw: ' + str(roll_pitch_yaw.z))
     tmp += 1
+    '''
+    while FIFO_count < packet_size:
+            FIFO_count = mpu.get_FIFO_count()
+        FIFO_buffer = mpu.get_FIFO_bytes(packet_size)
+        quat = mpu.DMP_get_quaternion(FIFO_buffer)
+        print('quat: ' + str(quat.w) + '  ' + str(quat.x) + '  ' + str(quat.y) + '  ' + str(quat.z))
+    tmp += 1
+    '''
