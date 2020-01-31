@@ -38,35 +38,6 @@ FIFO_buffer = [0]*64
 
 FIFO_count_list = list()
 
-#Uncomment to use previous version of program
-'''
-while count < 10000:
-    FIFO_count = mpu.get_FIFO_count()
-    mpu_int_status = mpu.get_int_status()
-
-    # If overflow is detected by status or fifo count we want to reset
-    if (FIFO_count == 1024) or (mpu_int_status & 0x10):
-        mpu.reset_FIFO()
-        print('overflow!')
-    # Check if fifo data is ready
-    elif (mpu_int_status & 0x02):
-        # Wait until packet_size number of bytes are ready for reading, default
-        # is 42 bytes
-        while FIFO_count < packet_size:
-            FIFO_count = mpu.get_FIFO_count()
-        FIFO_buffer = mpu.get_FIFO_bytes(packet_size)
-        accel = mpu.DMP_get_acceleration_int16(FIFO_buffer)
-        quat = mpu.DMP_get_quaternion_int16(FIFO_buffer)
-        grav = mpu.DMP_get_gravity(quat)
-        roll_pitch_yaw = mpu.DMP_get_euler_roll_pitch_yaw(quat, grav)
-        if count % 100 == 0:
-            print('roll: ' + str(roll_pitch_yaw.x))
-            print('pitch: ' + str(roll_pitch_yaw.y))
-            print('yaw: ' + str(roll_pitch_yaw.z))
-        count += 1
-'''
-
-#New version of output information about angles
 tmp = 1 #tmp = True
 while tmp:
     FIFO_count = mpu.get_FIFO_count()
@@ -77,24 +48,25 @@ while tmp:
         mpu.reset_FIFO()
     # Check if fifo data is ready
     elif (mpu_int_status & 0x02):
-        # Wait until packet_size number of bytes are ready for reading, default
-        # is 42 bytes
+        # Wait until packet_size number of bytes are ready for reading, default is 42 bytes
+        
         while FIFO_count < packet_size:
             FIFO_count = mpu.get_FIFO_count()
         FIFO_buffer = mpu.get_FIFO_bytes(packet_size)
+        #Uncomment to use roll_pitch_yaw
+        '''
         accel = mpu.DMP_get_acceleration_int16(FIFO_buffer)
         quat = mpu.DMP_get_quaternion_int16(FIFO_buffer)
         grav = mpu.DMP_get_gravity(quat)
         roll_pitch_yaw = mpu.DMP_get_euler_roll_pitch_yaw(quat, grav)
+        #calculated from quat & grav, grav is calculated from quat
         print('roll: ' + str(roll_pitch_yaw.x))
         print('pitch: ' + str(roll_pitch_yaw.y))
         print('yaw: ' + str(roll_pitch_yaw.z))
     tmp += 1
     '''
-    while FIFO_count < packet_size:
-            FIFO_count = mpu.get_FIFO_count()
-        FIFO_buffer = mpu.get_FIFO_bytes(packet_size)
+        #Uncomment to use quat
+    
         quat = mpu.DMP_get_quaternion(FIFO_buffer)
         print('quat: ' + str(quat.w) + '  ' + str(quat.x) + '  ' + str(quat.y) + '  ' + str(quat.z))
     tmp += 1
-    '''

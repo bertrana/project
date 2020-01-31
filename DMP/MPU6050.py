@@ -734,14 +734,17 @@ class MPU6050:
         return self.__bus.read_byte_data(self.__dev_id,
                                          C.MPU6050_RA_INT_STATUS)
 
+    #
     # Data retrieval from received FIFO buffer
+    #
+    #Получаем кватернион
     def DMP_get_quaternion_int16(self, a_FIFO_buffer):
         w = ctypes.c_int16((a_FIFO_buffer[0] << 8) | a_FIFO_buffer[1]).value
         x = ctypes.c_int16((a_FIFO_buffer[4] << 8) | a_FIFO_buffer[5]).value
         y = ctypes.c_int16((a_FIFO_buffer[8] << 8) | a_FIFO_buffer[9]).value
         z = ctypes.c_int16((a_FIFO_buffer[12] << 8) | a_FIFO_buffer[13]).value
         return Q(w, x, y, z)
-
+    #Нормализация кватерниона (не по абсолютному значению!)
     def DMP_get_quaternion(self, a_FIFO_buffer):
         quat = self.DMP_get_quaternion_int16(a_FIFO_buffer)
         w = quat.w / 16384.0
@@ -750,33 +753,45 @@ class MPU6050:
         z = quat.z / 16384.0
         return Q(w, x, y, z)
 
+    #Получаем вектор ускорения
     def DMP_get_acceleration_int16(self, a_FIFO_buffer):
         x = ctypes.c_int16(a_FIFO_buffer[28] << 8 | a_FIFO_buffer[29]).value
         y = ctypes.c_int16(a_FIFO_buffer[32] << 8 | a_FIFO_buffer[33]).value
         z = ctypes.c_int16(a_FIFO_buffer[36] << 8 | a_FIFO_buffer[37]).value
         return V(x, y, z)
-
+    #Получаем вектор гравитации преобразованием кватерниона
     def DMP_get_gravity(self, a_quat):
         x = 2.0 * (a_quat.x * a_quat.z - a_quat.w * a_quat.y)
         y = 2.0 * (a_quat.w * a_quat.x + a_quat.y * a_quat.z)
         z = 1.0 * (a_quat.w * a_quat.w - a_quat.x * a_quat.x -
                    a_quat.y * a_quat.y + a_quat.z * a_quat.z)
         return V(x, y, z)
-
+    #Получаем вектор линейной составляющей ускорения с помощью вычитания 
+    #вектора гравитации из вектора ускорения
     def DMP_get_linear_accel_int16(self, a_v_raw, a_grav):
         x = ctypes.c_int16(a_v_raw.x - (a_grav.x*8192)).value
         y = ctypes.c_int16(a_v_raw.y - (a_grav.y*8192)).value
-        y = ctypes.c_int16(a_v_raw.y - (a_grav.y*8192)).value
+        z = ctypes.c_int16(a_v_raw.y - (a_grav.y*8192)).value
+        return V(x, y, z)
+    #Получаем вектор линейной составляющей ускорения с помощью вычитания 
+    #вектора гравитации из вектора ускорения (отличие в том, что здесь
+    #используются значения не из словарей/списков?? мировые координаты?)
+    def DMP_get_linear_accel(self, a_vector_raw, a_vect_grav):
+        x = a_vector_raw.x - a_vect_grav.x*8192
+        y = a_vector_raw.y - a_vect_grav.y*8192
+        z = a_vector_raw.z - a_vect_grav.z*8192
         return V(x, y, z)
 
+    #Получаем углы Эйлера преобразованием кватерниона
     def DMP_get_euler(self, a_quat):
         psi = math.atan2(2*a_quat.x*a_quat.y - 2*a_quat.w*a_quat.z,
                          2*a_quat.w*a_quat.w + 2*a_quat.x*a_quat.x - 1)
-        theta = -asin(2*a_quat.x*a_quat.z + 2*a_quat.w*a_quat.y)
+        theta = -math.asin(2*a_quat.x*a_quat.z + 2*a_quat.w*a_quat.y)
         phi = math.atan2(2*a_quat.y*a_quat.z - 2*a_quat.w*a_quat.x,
                          2*a_quat.w*a_quat.w + 2*a_quat.z*a_quat.z - 1)
         return V(psi, theta, phi)
-
+    #Получаем крен, тангаж и рыскание преобразованием кватерниона и вектора
+    #гравитации в радианах
     def DMP_get_roll_pitch_yaw(self, a_quat, a_grav_vect):
         # roll: (tilt left/right, about X axis)
         roll = math.atan(a_grav_vect.y /
@@ -790,19 +805,13 @@ class MPU6050:
         yaw = math.atan2(2*a_quat.x*a_quat.y - 2*a_quat.w*a_quat.z,
                          2*a_quat.w*a_quat.w + 2*a_quat.x*a_quat.x - 1)
         return V(roll, pitch, yaw)
-
+    #Преобразуем крен, тангаж и рыскание в градусах
     def DMP_get_euler_roll_pitch_yaw(self, a_quat, a_grav_vect):
         rad_ypr = self.DMP_get_roll_pitch_yaw(a_quat, a_grav_vect)
         roll = rad_ypr.x * (180.0/math.pi)
         pitch = rad_ypr.y * (180.0/math.pi)
         yaw = rad_ypr.z * (180.0/math.pi)
         return V(roll, pitch, yaw)
-
-    def DMP_get_linear_accel(self, a_vector_raw, a_vect_grav):
-        x = a_vector_raw.x - a_vect_grav.x*8192
-        y = a_vector_raw.y - a_vect_grav.y*8192
-        z = a_vector_raw.z - a_vect_grav.z*8192
-        return V(x, y, z)
 
 
 class MPU6050IRQHandler:
