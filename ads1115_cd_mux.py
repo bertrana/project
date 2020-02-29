@@ -49,11 +49,4 @@ for i in range(5):
     dataADS(1)
     time.sleep(1)    
     
-GPIO.cleanup() # Очистка 
-
-startTime = time.time()
-while 1:
-    t = time.time()
-    if t-startTime > 1:
-        startTime += 1
-        print('1')
+GPIO.cleanup() # Очистка
