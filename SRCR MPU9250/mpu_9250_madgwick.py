@@ -39,11 +39,17 @@ def mpu_data_acquire(mpuAddr): #получение данных из регис�
     a_x = read_register_mpu(mpuAddr, 0x3b)
     a_y = read_register_mpu(mpuAddr, 0x3d)
     a_z = read_register_mpu(mpuAddr, 0x3f)
+    a_x_s = a_x #/16384
+    a_y_s = a_y #/16384
+    a_z_s = a_z #/16384
     m_x = read_register_mpu_little_endian(0x0C, 0x03)
     m_y = read_register_mpu_little_endian(0x0C, 0x05)
     m_z = read_register_mpu_little_endian(0x0C, 0x07)
+    m_x_s = m_x #/6.83
+    m_y_s = m_y #/6.83
+    m_z_s = m_z #/6.83
     bus.read_byte_data(AK8963_ADDRESS,AK8963_ST2) # needed step for reading magnetic data
-    return g_x_s, g_y_s, g_z_s, a_x, a_y, a_z, m_x, m_y, m_z
+    return g_x_s, g_y_s, g_z_s, a_x_s, a_y_s, a_z_s, m_x_s, m_y_s, m_z_s
 # Function to compute one filter iteration
 def filterUpdate(g_x, g_y, g_z, a_x, a_y, a_z, m_x, m_y, m_z):
     #local system variables
@@ -226,6 +232,8 @@ bus.write_byte_data(MPU9250_ADDRESS, PWR_MGMT_1, 0x00)
 bus.write_byte_data(MPU9250_ADDRESS, PWR_MGMT_1, 0x01)  # auto select clock source
 bus.write_byte_data(MPU9250_ADDRESS, ACCEL_CONFIG, ACCEL_4G)
 bus.write_byte_data(MPU9250_ADDRESS, GYRO_CONFIG, GYRO_250DPS)
+bus.write_byte_data(MPU9250_ADDRESS, INT_PIN_CFG, 0x22)
+bus.write_byte_data(MPU9250_ADDRESS, INT_ENABLE, 0x01)
 bus.write_byte_data(AK8963_ADDRESS, AK8963_CNTL1, (AK8963_16BIT | AK8963_8HZ)) # cont mode 1
 bus.write_byte_data(AK8963_ADDRESS, AK8963_ASTC, 0)
 
@@ -233,9 +241,9 @@ bus.write_byte_data(AK8963_ADDRESS, AK8963_ASTC, 0)
 #glsb = 250.0 / 32760 # GYRO_250DPS
 #mlsb = 4800.0 / 32760 # MAGNET range +-4800
 # System constants
-deltat = 0.01 # sampling period in seconds (shown as 1 ms)
-gyroMeasError = math.pi * (5.0 / 180.0) # gyroscope measurement error in rad/s (shown as 5 deg/s)
-gyroMeasDrift = math.pi * (0.2 / 180.0) # gyroscope measurement error in rad/s/s (shown as 0.2f deg/s/s)
+deltat = 0.2 # sampling period in seconds (shown as 1 ms)
+gyroMeasError = math.pi * (-3600.0 / 180.0) # gyroscope measurement error in rad/s (shown as 5 deg/s)
+gyroMeasDrift = math.pi * (0.0 / 180.0) # gyroscope measurement error in rad/s/s (shown as 0.2f deg/s/s)
 beta = math.sqrt(3.0 / 4.0) * gyroMeasError # compute beta
 zeta = math.sqrt(3.0 / 4.0) * gyroMeasDrift # compute zeta
 # Global system variables
@@ -252,17 +260,23 @@ g_bx = 0
 g_by = 0
 g_bz = 0 # estimate gyroscope biases error
 
-input('Press Enter when you are ready to start')
+while True:
+    ready = input("Input 1 when you are ready to start: ")
+    if ready == 1:
+        break
+    else:
+        print "The input was not a 1."
 #mpu_data_acquire(MPU9250_ADDRESS)
 #g_x, g_y, g_z, a_x, a_y, a_z, m_x, m_y, m_z
-startTime=time.time()					# Time of first sample
-t1=startTime							# T1 is last sample time
-t2=t1									# T2 is current time   
-#    for x in range (0,datapoints):		# Loop in which data is sampled
+startTime=time.time()                   # Time of first sample
+t1=startTime                            # T1 is last sample time
+t2=t1                                   # T2 is current time   
+#    for x in range (0,datapoints):     # Loop in which data is sampled
 while True:
-    while (t2-t1 < deltat):		        # Check if t2-t1 is less then sample period, if it is then update t2
-        t2 = time.time()			    # and check again		
-    t1 += deltat						# Update last sample time by the sampling period
-    #print (adc.readADCSingleEnded(inputA, pga, sps), " mV		", ("%.2f" % (t2-startTime)) , " s")		# Print sampled value and time to the terminal
-    w, x, y, z = filterUpdate(mpu_data_acquire(MPU9250_ADDRESS))
+    while (t2-t1 < deltat):             # Check if t2-t1 is less then sample period, if it is then update t2
+        t2 = time.time()                # and check again       
+    t1 += deltat                        # Update last sample time by the sampling period
+    #print (adc.readADCSingleEnded(inputA, pga, sps), " mV      ", ("%.2f" % (t2-startTime)) , " s")        # Print sampled value and time to the terminal
+    gxs, gys, gzs, axs, ays, azs, mxs, mys, mzs = mpu_data_acquire(MPU9250_ADDRESS)
+    w, x, y, z = filterUpdate(gxs, gys, gzs, axs, ays, azs, mxs, mys, mzs)
     print('quat: ' + str(w) + '  ' + str(x) + '  ' + str(y) + '  ' + str(z))
