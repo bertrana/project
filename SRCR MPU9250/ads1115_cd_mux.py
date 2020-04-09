@@ -12,7 +12,7 @@ from Adafruit_ADS1x15 import ADS1x15
 
 def dataADS(inputA):
 		
-    frequency = 100	# how often the Pi reads the ADS1115, Hz
+    frequency = 1	# how often the Pi reads the ADS1115, Hz
     sps = 8			# how long it takes for the ADC to carry out a single conversion (1/sps)
     time1 = 360		# Get how long to sample for from the user
     
@@ -34,20 +34,20 @@ pga = 6144					# Set full-scale range of programable gain amplifier (page 13 of 
 ADS1115 = 0x01				# Specify that the device being used is the ADS1115, for the ADS1015 used 0x00
 adc = ADS1x15(ic=ADS1115)	# Create instance of the class ADS1x15 called adc
 
-#mode = GPIO.getmode() # Проверяем метод нумерации
-#GPIO.setmode(GPIO.BOARD) # Устанавливаем метод BOARD, если не установлен ранее
+mode = GPIO.getmode() # Проверяем метод нумерации
+GPIO.setmode(GPIO.BOARD) # Устанавливаем метод BOARD, если не установлен ранее
 
-#chan_list_right = (18,22,29,31) # Управляющие пины для правой руки 
-#chan_list_left = (11,13,15,16) # Управляющие пины для левой руки                                  
+chan_list_right = (18,22,29,31) # Управляющие пины для правой руки 
+chan_list_left = (11,13,15,16) # Управляющие пины для левой руки                                  
 
-#GPIO.output(chan_list_right, GPIO.LOW) # на левую руку на всё подается LOW
-#GPIO.output(chan_list_left, GPIO.LOW) # на правую руку на всё подается LOW        
+GPIO.output(chan_list_right, GPIO.LOW) # на левую руку на всё подается LOW
+GPIO.output(chan_list_left, GPIO.LOW) # на правую руку на всё подается LOW        
         
-#muxChannel=[[0,0,0,0], # channel 0 
-#            [1,0,0,0], # channel 1 
-#            [0,1,0,0], # channel 2 
-#            [1,1,0,0], # channel 3 
-#            [0,0,1,0]] # channel 4
+muxChannel=[[0,0,0,0], # channel 0 
+            [1,0,0,0], # channel 1 
+            [0,1,0,0], # channel 2 
+            [1,1,0,0], # channel 3 
+            [0,0,1,0]] # channel 4
  
 for i in range(5):
     GPIO.output(chan_list_right, muxChannel(i))
