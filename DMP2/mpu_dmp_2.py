@@ -83,7 +83,12 @@ while tmp:
             FIFO_count1 = mpu1.get_FIFO_count()
         FIFO_buffer1 = mpu1.get_FIFO_bytes(packet_size1)
         
-        quat1 = mpu1.DMP_get_quaternion(FIFO_buffer1)
+    quat = mpu1.DMP_get_quaternion(FIFO_buffer1)
+        
+    quat1w = quat.w
+    quat1x = quat.x
+    quat1y = quat.y
+    quat1z = quat.z
     
     # If overflow is detected by status or fifo count we want to reset    
     if (FIFO_count2 == 1024) or (mpu_int_status2 & 0x10):
@@ -96,9 +101,14 @@ while tmp:
             FIFO_count2 = mpu2.get_FIFO_count()
         FIFO_buffer2 = mpu2.get_FIFO_bytes(packet_size2)
         
-        quat2 = mpu2.DMP_get_quaternion(FIFO_buffer2)
+    quat = mpu2.DMP_get_quaternion(FIFO_buffer2)
         
-    quatw, quatx, quaty, quatz = relativeQuat(quat2.w, quat2.x, quat2.y, quat2.z, quat1.w, quat1.x, quat1.y, quat1.z)
+    quat2w = quat.w
+    quat2x = quat.x
+    quat2y = quat.y
+    quat2z = quat.z
+        
+    quatw, quatx, quaty, quatz = relativeQuat(quat2w, quat2x, quat2y, quat2z, quat1w, quat1x, quat1y, quat1z)
     print('quat: ' + str(quatw) + '  ' + str(quatx) + '  ' + str(quaty) + '  ' + str(quatz))
         
     tmp += 1
